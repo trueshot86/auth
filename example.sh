@@ -1,24 +1,63 @@
 #!/bin/bash
-# 固定のマッピングテーブルの定義
-declare -A char_map=(
-    [y]=M [a]=b [t]=G [e]=8 [v]=I [o]=c [x]=K [p]=y [R]=j [1]=/
-    [2]=L [3]=h [P]=0 [O]== [S]=+ [B]=- [C]=a [D]=9 [E]=4 [F]=7
-    [G]=6 [H]=2 [I]=1 [J]=d [L]=e [M]=f [N]=g [Q]=i [s]=3 [T]=k
-    [U]=l [V]=m [W]=n [X]=o [Y]=r [Z]=s
-    [b]=t [c]=u [d]=v [f]=w [g]=x [h]=z [i]=A [j]=B [l]=C [m]=D
-    [q]=E [r]=F [n]=p [u]=H [k]=b [w]=J [A]=T [K]=5 [z]=N
-    [4]=O [5]=P [6]=Q [7]=R [8]=S [9]=U [0]=V [+]=W [-]=X [/]=Y [=]=Z
+
+# 文字の出現回数を追跡する連想配列
+declare -A char_count
+
+# プライマリマッピング - すべての可能な文字に対してマッピングを提供
+declare -A primary_map=(
+    # 必須のマッピング（変更しない）
+    [K]=5 [a]=b [n]=p [e]=8 [k]=b [o]=c
+    [A]=T [p]=y [s]=/ [1]=h [2]=0 [3]==
+
+    # 追加のランダムなマッピング
+    [B]=W [C]=R [D]=q [E]=X [F]=U [G]=N
+    [H]=M [I]=K [J]=Z [L]=P [M]=E [N]=D
+    [O]=j [P]=i [Q]=g [R]=f [S]=d [T]=S
+    [U]=a [V]=m [W]=n [X]=o [Y]=r [Z]=s
+
+    [b]=V [c]=Q [d]=Y [f]=I [g]=J [h]=H
+    [i]=G [j]=F [l]=C [m]=B [q]=A [r]=z
+    [t]=x [u]=w [v]=v [w]=u [x]=t [y]=k
+    [z]=l
+
+    [4]=+ [5]=- [6]=/ [7]=m [8]=n [9]=p
+    [0]=q
+
+    [+]=1 [/]=4 [-]=7 [=]=9
+)
+
+# セカンダリマッピング（2回目以降の出現用）
+declare -A secondary_map=(
+    [a]=L [o]=3
+    # 追加の2回目マッピング（使用されないが、パターンを隠すため）
+    [b]=O [c]=P [d]=Q [e]=R [f]=S [g]=T
+    [h]=U [i]=V [j]=W [k]=X [l]=Y [m]=Z
+    [n]=1 [p]=2 [q]=4 [r]=5 [s]=6 [t]=7
+    [u]=8 [v]=9 [w]=0 [x]=+ [y]=- [z]=/
 )
 
 # 暗号化関数
 encrypt() {
     local input="$1"
     local output=""
+
+    # カウンターをリセット
+    char_count=()
+
     for (( i=0; i<${#input}; i++ )); do
         char="${input:$i:1}"
-        if [[ -n "${char_map[$char]}" ]]; then
-            output+="${char_map[$char]}"
+
+        # 文字の出現回数を増やす
+        (( char_count[$char]++ ))
+
+        if [[ ${char_count[$char]} -gt 1 ]] && [[ -n "${secondary_map[$char]}" ]]; then
+            # 2回目以降の出現で、セカンダリマッピングが存在する場合
+            output+="${secondary_map[$char]}"
+        elif [[ -n "${primary_map[$char]}" ]]; then
+            # 通常のマッピング
+            output+="${primary_map[$char]}"
         else
+            # マッピングが存在しない場合は元の文字を使用
             output+="$char"
         fi
     done
